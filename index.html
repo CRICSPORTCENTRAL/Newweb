@@ -2,82 +2,80 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dynamic HLS Video Player</title>
-  <link href="https://vjs.zencdn.net/8.5.0/video-js.css" rel="stylesheet">
+  <title>TG - @CRICSPORTCENTRAL</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    #video {
+      width: 100%;
+    }
+  </style>
 </head>
 <body>
-  <!-- Video.js Player -->
-  <video
-    id="video-player"
-    class="video-js vjs-default-skin"
-    controls
-    preload="auto"
-    width="640"
-    height="360"
-    data-setup='{}'>
-  </video>
+  <video id="video" controls></video>
 
-  <script src="https://vjs.zencdn.net/8.5.0/video.min.js"></script>
+  <select id="qualitySelect"></select>
+
   <script>
-    // Function to extract query parameters from the URL
+    // Function to get the `video` query parameter from the URL
     function getQueryParam(param) {
       const urlParams = new URLSearchParams(window.location.search);
       return urlParams.get(param);
     }
 
-    // Get the master m3u8 URL from the query string
-    const masterUrl = getQueryParam('video');
+    const video = document.getElementById('video');
+    const qualitySelect = document.getElementById('qualitySelect');
+    const m3u8Url = getQueryParam('video'); // Extract the m3u8 URL from the query string
 
-    if (masterUrl) {
-      // Initialize Video.js player
-      const player = videojs('video-player', {
-        fluid: true,
-        controlBar: {
-          qualitySelector: true // Custom quality selector
-        }
-      });
+    if (m3u8Url) {
+      // Initialize Hls.js and load the master playlist
+      if (Hls.isSupported()) {
+        const hls = new Hls();
 
-      // Set the HLS source
-      player.src({
-        src: masterUrl,
-        type: 'application/x-mpegURL'
-      });
+        hls.loadSource(m3u8Url);
+        hls.attachMedia(video);
 
-      // Add a quality selector using Video.js VHS
-      player.on('loadedmetadata', () => {
-        const levels = player.qualityLevels();
+        // Extract and populate quality options from the master playlist
+        hls.on(Hls.Events.MANIFEST_PARSED, function (_, data) {
+          // Populate the quality selector
+          data.levels.forEach((level, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = `${level.height}p (${Math.round(level.bitrate / 1000)} kbps)`;
+            qualitySelect.appendChild(option);
+          });
 
-        // Listen for changes in quality levels
-        const qualitySelector = document.createElement('select');
-        qualitySelector.id = 'quality-selector';
-        document.querySelector('.vjs-control-bar').appendChild(qualitySelector);
+          // Default quality selection
+          qualitySelect.addEventListener('change', function () {
+            hls.currentLevel = parseInt(qualitySelect.value);
+          });
 
-        // Add available quality options dynamically
-        levels.on('addqualitylevel', (event) => {
-          const qualityLevel = event.qualityLevel;
-          const option = document.createElement('option');
-          option.value = qualityLevel.bitrate;
-          option.textContent = `${Math.round(qualityLevel.bitrate / 1000)} kbps`;
-          qualitySelector.appendChild(option);
+          qualitySelect.value = hls.currentLevel; // Select default level
         });
-
-        // Handle user quality selection
-        qualitySelector.addEventListener('change', (event) => {
-          const selectedBitrate = parseInt(event.target.value);
-          for (let i = 0; i < levels.length; i++) {
-            levels[i].enabled = levels[i].bitrate === selectedBitrate;
-          }
-        });
-      });
-
-      // Autoplay the video after initialization
-      player.play();
+      } else {
+        // Fallback for browsers that don't support Hls.js
+        video.src = m3u8Url;
+        video.play();
+      }
     } else {
-      // Display a message if no video URL is provided
-      document.getElementById('video-player').outerHTML = 
-        '<p style="color: red; text-align: center;">No video URL provided in the query string. Add "?video=YOUR_MASTER_M3U8_URL" to the URL.</p>';
+      // If no video URL is provided in the query string, show an error message
+      document.body.innerHTML = '<p style="color: red; text-align: center;">No video URL provided. Add "?video=YOUR_M3U8_URL" to the URL.</p>';
     }
   </script>
+
+  <script>
+    if (confirm("Join Our Telegram Channel @CRICSPORTCENTRAL For More Links")) {
+      window.location.href = "https://t.me/CRICSPORTCENTRAL";
+    }
+  </script>
+
+  <div style="background-color: #0074d9; text-align: center; padding: 10px;">
+    <a href="https://telegram.me/CRICSPORTCENTRAL" target="_blank">
+      <button id="joinTelegramButton" style="background-color: #fff; color: #0074d9; border: 2px solid #0074d9; padding: 5px 10px;">
+        Join Telegram
+      </button>
+    </a>
+  </div>
 </body>
 </html>
