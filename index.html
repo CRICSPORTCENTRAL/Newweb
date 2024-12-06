@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynamic HLS Video Player</title>
+  <link href="https://vjs.zencdn.net/8.5.0/video-js.css" rel="stylesheet">
+</head>
+<body>
+  <!-- Video.js Player -->
+  <video
+    id="video-player"
+    class="video-js vjs-default-skin"
+    controls
+    preload="auto"
+    width="640"
+    height="360"
+    data-setup='{}'>
+  </video>
+
+  <script src="https://vjs.zencdn.net/8.5.0/video.min.js"></script>
+  <script>
+    // Function to extract query parameters from the URL
+    function getQueryParam(param) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(param);
+    }
+
+    // Get the master m3u8 URL from the query string
+    const masterUrl = getQueryParam('video');
+
+    if (masterUrl) {
+      // Initialize Video.js player
+      const player = videojs('video-player', {
+        fluid: true,
+        controlBar: {
+          qualitySelector: true // Custom quality selector
+        }
+      });
+
+      // Set the HLS source
+      player.src({
+        src: masterUrl,
+        type: 'application/x-mpegURL'
+      });
+
+      // Add a quality selector using Video.js VHS
+      player.on('loadedmetadata', () => {
+        const levels = player.qualityLevels();
+
+        // Listen for changes in quality levels
+        const qualitySelector = document.createElement('select');
+        qualitySelector.id = 'quality-selector';
+        document.querySelector('.vjs-control-bar').appendChild(qualitySelector);
+
+        // Add available quality options dynamically
+        levels.on('addqualitylevel', (event) => {
+          const qualityLevel = event.qualityLevel;
+          const option = document.createElement('option');
+          option.value = qualityLevel.bitrate;
+          option.textContent = `${Math.round(qualityLevel.bitrate / 1000)} kbps`;
+          qualitySelector.appendChild(option);
+        });
+
+        // Handle user quality selection
+        qualitySelector.addEventListener('change', (event) => {
+          const selectedBitrate = parseInt(event.target.value);
+          for (let i = 0; i < levels.length; i++) {
+            levels[i].enabled = levels[i].bitrate === selectedBitrate;
+          }
+        });
+      });
+
+      // Autoplay the video after initialization
+      player.play();
+    } else {
+      // Display a message if no video URL is provided
+      document.getElementById('video-player').outerHTML = 
+        '<p style="color: red; text-align: center;">No video URL provided in the query string. Add "?video=YOUR_MASTER_M3U8_URL" to the URL.</p>';
+    }
+  </script>
+</body>
+</html>
